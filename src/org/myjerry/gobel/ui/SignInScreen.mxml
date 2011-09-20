@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+gobel - A secured and versioned personal document store.
+Copyright (C) 2011, myJerry Developers
+http://www.myjerry.org/gobel
+
+The file is licensed under the the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="100%" height="100%" activate="group1_activateHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.core.FlexGlobals;
+			
+			import org.myjerry.as3utils.AssertUtils;
+			import org.myjerry.as3utils.ExtendedEncryptedLocalStore;
+			import org.myjerry.as3utils.StringUtils;
+			import org.myjerry.gobel.domain.CipheredPassword;
+			import org.myjerry.gobel.domain.ELSKeys;
+			
+			protected function signInButtonClickHandler(event:MouseEvent):void {
+				var showError:Boolean = false;
+				if(AssertUtils.isEmptyString(this.username.text)) {
+					showError = true;
+				}
+				
+				if(AssertUtils.isEmptyString(this.password.text)) {
+					showError = true;
+				}
+				
+				if(showError) {
+					this.errorMessage.text = 'Please provide username and/or password.';
+					this.errorMessage.includeInLayout = true;
+			 	} else {
+					this.errorMessage.includeInLayout = false;
+				}
+				
+				var username:String = ExtendedEncryptedLocalStore.getStringItem(ELSKeys.USERNAME);
+				var encryptedPassword:String = ExtendedEncryptedLocalStore.getStringItem(ELSKeys.PASSWORD);
+				var passwordFormat:uint = ExtendedEncryptedLocalStore.getUnsignedIntItem(ELSKeys.PASSWORD_FORMAT);
+				
+				if(StringUtils.equals(this.username.text, username) && CipheredPassword.equals(this.password.text, encryptedPassword, passwordFormat)) {
+					this.errorMessage.includeInLayout = false;
+					(FlexGlobals.topLevelApplication as gobel).setState(gobel.STATE_HOME);
+					return;
+				}
+
+				this.errorMessage.text = 'Username/Password mismatch.';
+				this.errorMessage.includeInLayout = true;
+			}
+			
+			protected function group1_activateHandler(event:Event):void {
+				this.username.setFocus();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+
+	<s:Form defaultButton="{this.signInButton}">
+		<s:FormHeading label="Sign In" />
+		
+		<s:Label id="errorMessage" text="" includeInLayout="false" />
+		
+		<s:FormItem label="Username">
+			<s:TextInput id="username" />
+		</s:FormItem>
+		
+		<s:FormItem label="Password">
+			<s:TextInput id="password" displayAsPassword="true" />
+		</s:FormItem>
+		
+		<s:FormItem>
+			<s:Button id="signInButton" label="Sign In" click="signInButtonClickHandler(event)"/>
+		</s:FormItem>
+	</s:Form>
+
+</s:Group>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+gobel - A secured and versioned personal document store.
+Copyright (C) 2011, myJerry Developers
+http://www.myjerry.org/gobel
+
+The file is licensed under the the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   initialize="applicationInitializeHandler(event)" 
+					   xmlns:ui="org.myjerry.gobel.ui.*"
+					   width="760" height="570">
+
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import org.myjerry.essentials.Essentials;
+			import org.myjerry.essentials.config.EssentialsConfiguration;
+			import org.myjerry.gobel.ApplicationContext;
+			
+			public static const STATE_HOME:String = "home";
+			
+			public static const STATE_SETTINGS:String = "settings";
+			
+			public static const STATE_SIGN_IN:String = "signIn";
+			
+			public static const STATE_VERSIONS:String = "versions";
+			
+			protected function applicationInitializeHandler(event:FlexEvent):void {
+				// initialize essentials
+				var config:EssentialsConfiguration = getEssentialsConfiguration();
+				Essentials.initialize(this, config);
+				
+				// load the status bar
+				const version:String = Essentials.system.applicationVersion;
+				const year:String = String(new Date().fullYear);
+				this.status = 'Version ' + version + '. © 2011-' + year + ' myJerry Developers.';
+				
+				// check if the application has been setup before or not
+				if(!ApplicationContext.appSetupComplete) {
+					setState(STATE_SETTINGS);
+					return;
+				}
+				
+				setState(STATE_SIGN_IN);
+			}
+			
+			public function setState(stateValue:String):void {
+				this.currentState = stateValue;
+			}
+			
+			private function getEssentialsConfiguration():EssentialsConfiguration {
+				var config:EssentialsConfiguration = new EssentialsConfiguration();
+				config.updates.manageApplicationUpdates = false;
+				return config;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout paddingBottom="10" paddingLeft="10" paddingRight="10" paddingTop="10" />
+	</s:layout>
+	
+	<s:states>
+		<s:State name="signIn" />
+		<s:State name="settings" />
+		<s:State name="home" />
+		<s:State name="versions" />
+	</s:states>
+	
+	<ui:SignInScreen id="signInScreen" includeIn="signIn" />
+	
+	<ui:SettingsScreen id="settingsScreen" includeIn="settings" />
+	
+	<ui:HomeScreen id="homeScreen" includeIn="home" />
+	
+	<ui:VersionScreen id="versionScreen" includeIn="versions" /> 
+	
+</s:WindowedApplication>

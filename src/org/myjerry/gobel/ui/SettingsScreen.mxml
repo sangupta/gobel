@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+gobel - A secured and versioned personal document store.
+Copyright (C) 2011, myJerry Developers
+http://www.myjerry.org/gobel
+
+The file is licensed under the the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="100%" height="100%">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.air.crypto.EncryptionKeyGenerator;
+			
+			import mx.core.FlexGlobals;
+			
+			import org.myjerry.as3utils.AssertUtils;
+			import org.myjerry.as3utils.ExtendedEncryptedLocalStore;
+			import org.myjerry.as3utils.StringUtils;
+			import org.myjerry.essentials.Essentials;
+			import org.myjerry.gobel.domain.CipheredPassword;
+			import org.myjerry.gobel.domain.DBPreferenceKeys;
+			import org.myjerry.gobel.domain.ELSKeys;
+			
+			protected function saveButtonClickHandler(event:MouseEvent):void {
+				var showErrorMessage:Boolean = false;
+				
+				if(AssertUtils.isEmptyString(this.username.text)) {
+					showErrorMessage = true;
+				}
+				
+				if(AssertUtils.isEmptyString(this.password.text)) {
+					showErrorMessage = true;
+				}
+				
+				if(AssertUtils.isEmptyString(this.confirmPassword.text)) {
+					showErrorMessage = true;
+				}
+				
+				if(AssertUtils.isEmptyString(this.dbPassword.text)) {
+					showErrorMessage = true;
+				}
+				
+				if(AssertUtils.isEmptyString(this.confirmDbPassword.text)) {
+					showErrorMessage = true;
+				}
+				
+				if(showErrorMessage) {
+					this.errorMessage.includeInLayout = showErrorMessage;
+					this.message.text = "Please provide username and/or password(s).";
+					return;
+				}
+				
+				if(!StringUtils.equals(this.password.text, this.confirmPassword.text)) {
+					this.errorMessage.includeInLayout = true;
+					this.message.text = "Password and Confirm Password do not match.";
+					return;
+				}
+				
+				if(!StringUtils.equals(this.dbPassword.text, this.confirmDbPassword.text)) {
+					this.errorMessage.includeInLayout = true;
+					this.message.text = "Database Password and Confirm Password do not match.";
+					return;
+				}
+				
+				var keyGenerator:EncryptionKeyGenerator = new EncryptionKeyGenerator();
+				if(!keyGenerator.validateStrongPassword(this.dbPassword.text)) {
+					this.errorMessage.includeInLayout = true;
+					this.message.text = "The database password must be a strong password. It must be 8-32 characters long. It must contain at least one uppercase letter, at least one lowercase letter, and at least one number or symbol.";
+					return;
+				}
+				
+				const passFormat:uint = CipheredPassword.getScheme(this.passwordFormat.selection.label);
+				
+				// start storing data
+				ExtendedEncryptedLocalStore.setStringItem(ELSKeys.USERNAME, this.username.text);
+				ExtendedEncryptedLocalStore.setStringItem(ELSKeys.PASSWORD, this.password.text);
+				ExtendedEncryptedLocalStore.setStringItem(ELSKeys.DATABASE_ENCRYPTION_PASSWORD, this.dbPassword.text);
+				ExtendedEncryptedLocalStore.setUnsignedIntItem(ELSKeys.PASSWORD_FORMAT, passFormat);
+				
+				Essentials.preferences.saveBooleanPreference(DBPreferenceKeys.APP_SETUP_COMPLETE, true);
+				
+				// switch the UI
+				(FlexGlobals.topLevelApplication as gobel).setState(gobel.STATE_SIGN_IN);
+			}
+			
+			protected function cancelButtonClickHandler(event:MouseEvent):void {
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<s:RadioButtonGroup id="passwordFormat" />
+	</fx:Declarations>
+	
+	<s:Form defaultButton="{this.saveButton}">
+		<s:FormHeading label="Settings" />
+		<s:FormItem id="errorMessage" includeInLayout="false">
+			<s:Label id="message" />
+		</s:FormItem>
+		<s:FormItem label="Username">
+			<s:TextInput id="username" width="100%" />
+		</s:FormItem>
+		<s:FormItem label="Password">
+			<s:TextInput id="password" width="100%" displayAsPassword="true" />
+		</s:FormItem>
+		<s:FormItem label="Confirm Password">
+			<s:TextInput id="confirmPassword" width="100%" displayAsPassword="true" />
+		</s:FormItem>
+
+		<s:FormItem label="Password Format">
+			<s:RadioButton groupName="passwordFormat" label="{CipheredPassword.NORMAL}" selected="true" />
+			<s:RadioButton groupName="passwordFormat" label="Password_20122011" />
+			<s:RadioButton groupName="passwordFormat" label="WedPassword20122011" />
+			<s:RadioButton groupName="passwordFormat" label="Wed_Password_20122011" />
+		</s:FormItem>
+		
+		<s:FormItem label="Database Encryption Password">
+			<s:TextInput id="dbPassword" width="100%" displayAsPassword="true" />
+		</s:FormItem>
+		
+		<s:FormItem label="Confirm Database Encryption Password">
+			<s:TextInput id="confirmDbPassword" width="100%" displayAsPassword="true" />
+		</s:FormItem>
+		
+		<s:FormItem>
+			<s:HGroup width="100%">
+				<s:Button label="Cancel" click="cancelButtonClickHandler(event)"/>
+				<s:Button id="saveButton" label="Save" click="saveButtonClickHandler(event)"/>
+			</s:HGroup>
+		</s:FormItem>
+	</s:Form>
+	
+</s:Group>

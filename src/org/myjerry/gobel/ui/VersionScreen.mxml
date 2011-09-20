@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+gobel - A secured and versioned personal document store.
+Copyright (C) 2011, myJerry Developers
+http://www.myjerry.org/gobel
+
+The file is licensed under the the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="100%" height="100%">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.core.FlexGlobals;
+			import mx.managers.CursorManager;
+			
+			import org.myjerry.as3utils.FileUtils;
+			import org.myjerry.gobel.domain.StoreFile;
+			import org.myjerry.gobel.popup.AlertPopup;
+			import org.myjerry.gobel.store.StoreManager;
+			
+			[Bindable]
+			private var fileVersions:ArrayCollection = null;
+			
+			[Bindable]
+			private var fileName:String = '';
+			
+			private var fileInStoreToSave:StoreFile = null;
+			
+			private var fileSelectedOnDisk:File = null;
+			
+			public function showVersionsForStoreFile(storeFile:StoreFile):void {
+				this.fileName = storeFile.fileName;
+				this.fileVersions = StoreManager.getFileVersions(storeFile.fileID);
+			}
+			
+			private function homeButtonClickHandler():void {
+				(FlexGlobals.topLevelApplication as gobel).setState(gobel.STATE_HOME);
+			}
+			
+			private function exportButtonClickHandler():void {
+				var storeFile:StoreFile = this.fileGrid.selectedItem as StoreFile;
+				if(storeFile != null) {
+					this.fileInStoreToSave = storeFile;
+					
+					var fileToSave:File = File.desktopDirectory.resolvePath(this.fileName);
+					fileToSave.addEventListener(Event.SELECT, exportFileSelectedHandler);
+					fileToSave.browseForSave("Choose save location");
+				}
+			}
+			
+			private function exportFileSelectedHandler(event:Event):void {
+				var selectedFile:File = event.target as File;
+				
+				if(selectedFile.isDirectory) {
+					var fileToWrite:File = selectedFile.resolvePath(this.fileInStoreToSave.fileName);
+					this.fileSelectedOnDisk = fileToWrite;
+					if(fileToWrite.exists) {
+						AlertPopup.showAlert('File already exists with the same name, over-write?', writeFileToDisk, clearSaveSelection);
+						return;
+					}
+				} else {
+					this.fileSelectedOnDisk = selectedFile;
+				}
+				
+				writeFileToDisk();
+			}
+			
+			private function writeFileToDisk(event:Event = null):void {
+				CursorManager.setBusyCursor();
+				FileUtils.writeByteArrayToFile(this.fileSelectedOnDisk, StoreManager.fetchFileFromStore(this.fileInStoreToSave.fileVersionID));
+				CursorManager.removeBusyCursor();
+				
+				Alert.show("File successfully exported.", 'File Export');
+			}
+			
+			private function clearSaveSelection(event:Event = null):void {
+				this.fileInStoreToSave = null;
+				this.fileSelectedOnDisk = null;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout />
+	</s:layout>
+	
+	<s:HGroup width="100%" >
+		<s:Label text="Versions for File: " />
+		<s:Label text="{this.fileName}" />
+	</s:HGroup>
+	
+	<s:DataGrid id="fileGrid" width="100%" height="100%" dataProvider="{this.fileVersions}">
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn headerText="Version" dataField="version" />
+				<s:GridColumn headerText="Size" dataField="size" />
+				<s:GridColumn headerText="Last Modified" dataField="lastModified" />
+				<s:GridColumn headerText="Stored On" dataField="storedOn" />
+			</s:ArrayList>
+		</s:columns>
+	</s:DataGrid>
+	
+	<s:HGroup width="100%">
+		<s:Button label="Export" click="exportButtonClickHandler()" enabled="{this.fileGrid.selectedItem != null}" />
+		<s:Button label="Back to Home" click="homeButtonClickHandler()" />
+	</s:HGroup>
+	
+</s:Group>
